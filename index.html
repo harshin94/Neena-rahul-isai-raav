@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Neena &amp; Rahul's Isai Raav</title>
+<html>
+  <head>
+    <meta charset=utf8>
+    <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Isai Raav Motion Preview</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -268,10 +269,10 @@ main.sealed{min-height:calc(100vh - 2*clamp(28px,6vw,72px));justify-content:cent
 .tap-dot{width:8px;height:8px;border-radius:50%;background:var(--pink);animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:.35}}
 main.opened .tap-hint{display:none}
-main.opened > .reveal{animation:rise 1.6s cubic-bezier(.2,.7,.2,1) both}
-main.opened > .reveal:nth-child(3){animation-delay:.3s}
-main.opened > .reveal:nth-child(4){animation-delay:.6s}
-@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+main.opened > .reveal{animation:rise 1.2s ease-out both}
+main.opened > .reveal:nth-child(3){animation-delay:.25s}
+main.opened > .reveal:nth-child(4){animation-delay:.5s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.cover-tap.fly .bird{animation:none;opacity:0}.tap-dot{animation:none}main.opened > .reveal{animation:none}.flip-in{animation:none}.couple *{animation:none!important}.strand{animation:none}.card{transition:none}}
 @media (max-width:420px){.carnation{width:56%;right:-6%}}
 
@@ -361,8 +362,6 @@ main{position:relative;z-index:1}
 @media (prefers-reduced-motion:reduce){.pair .mh-col,.pair .foil{clip-path:none;animation:none}.pair .bar{opacity:.7}.ev-mt .dd svg{animation:none}}
 </style>
 
-</head>
-<body>
 <main class="sealed" id="invite">
 
       <!-- COVER -->
@@ -697,10 +696,21 @@ main{position:relative;z-index:1}
       const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       cover.classList.add('fly');
       setTimeout(()=>{
+        const before=cover.getBoundingClientRect().top;
         main.classList.remove('sealed');main.classList.add('opened');
+        const shift=before-cover.getBoundingClientRect().top;
+        if(shift>0)main.style.paddingTop=shift+'px';   /* keep the cover exactly where it was, no jump */
         cover.setAttribute('aria-expanded','true');
         const next=main.querySelector('.hero');
-        if(next)setTimeout(()=>next.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}),450);
+        if(next){
+          const target=Math.max(0,next.getBoundingClientRect().top+window.scrollY-18);
+          if(reduce){window.scrollTo(0,target);}
+          else setTimeout(()=>{
+            const from=window.scrollY,dist=target-from,dur=1400,st=performance.now();
+            const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+            (function step(now){const k=Math.min(1,(now-st)/dur);window.scrollTo(0,from+dist*ease(k));if(k<1)requestAnimationFrame(step);})(st);
+          },350);
+        }
       },reduce?0:1900);
     }
     cover.addEventListener('click',open);
@@ -849,12 +859,57 @@ main{position:relative;z-index:1}
     }
   }
   function fade(to,sec){const t=ac.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(master.gain.value,t);master.gain.linearRampToValueAtTime(to,t+sec);}
+
+  /* gentle wing-flutter + harp shimmer as the parrots take off */
+  let introDone=false;
+  function intro(){
+    if(introDone||!ac)return;introDone=true;
+    const t0=ac.currentTime+.05;
+    const out=ac.createGain();out.gain.value=1;
+    const rv=ac.createConvolver();rv.buffer=impulse(3.2);const rvg=ac.createGain();rvg.gain.value=.35;
+    out.connect(ac.destination);out.connect(rv);rv.connect(rvg);rvg.connect(ac.destination);
+    /* sweet, soft bird calls: two little parrots chirping as they fly off */
+    const bl=ac.createBiquadFilter();bl.type='lowpass';bl.frequency.value=4200;bl.connect(out);
+    function chirp(t,f1,f2,f3,dur,amp,panv){
+      const o=ac.createOscillator(),g=ac.createGain(),tr=ac.createOscillator(),tg=ac.createGain();
+      o.type='sine';o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur*.45);o.frequency.exponentialRampToValueAtTime(f3,t+dur);
+      tr.frequency.value=28;tg.gain.value=f2*.025;tr.connect(tg);tg.connect(o.frequency);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(amp,t+dur*.25);g.gain.linearRampToValueAtTime(amp*.7,t+dur*.7);g.gain.linearRampToValueAtTime(0,t+dur);
+      let n=g;if(ac.createStereoPanner){const pn=ac.createStereoPanner();pn.pan.value=panv;g.connect(pn);n=pn;}
+      o.connect(g);n.connect(bl);o.start(t);tr.start(t);o.stop(t+dur+.05);tr.stop(t+dur+.05);
+    }
+    /* [time, start Hz, peak Hz, end Hz, length, loudness, pan] — slow, gentle "tee-yoo" and "chiri" calls */
+    [[0.10,2300,3100,2600,.16,.022,-.25],[0.30,2700,2200,1900,.18,.018,-.25],
+     [0.62,2600,3400,3000,.12,.016,.3],[0.78,3000,3500,3200,.10,.014,.3],
+     [1.15,2200,2900,2400,.18,.016,-.1],[1.36,2500,2100,1800,.20,.013,-.1],
+     [1.80,2800,3500,3100,.12,.010,.45],[1.95,3100,3600,3300,.10,.008,.5]
+    ].forEach(([dt,a,b,c,d,amp,pv])=>chirp(t0+dt,a,b,c,d,amp,pv));
+    /* rising harp glissando in the same raag, like a little blessing */
+    const notes=[4,7,11,12];
+    notes.forEach((st,i)=>{
+      const tt=t0+.9+i*.32,fr=SA*2*Math.pow(2,st/12);
+      [[1,.018],[2,.005]].forEach(([m,a])=>{
+        const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=fr*m;
+        g.gain.setValueAtTime(0,tt);g.gain.linearRampToValueAtTime(a,tt+.008);g.gain.exponentialRampToValueAtTime(.0004,tt+2.4/m);
+        o.connect(g);g.connect(out);o.start(tt);o.stop(tt+2.6);});
+    });
+    /* tiny temple-bell chime as they disappear */
+    const bt=t0+1.9;
+    [].concat([]).forEach(([m,a])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=SA*4*m;
+      g.gain.setValueAtTime(0,bt);g.gain.linearRampToValueAtTime(a,bt+.005);g.gain.exponentialRampToValueAtTime(.0004,bt+3.4/m);
+      o.connect(g);g.connect(out);o.start(bt);o.stop(bt+3.6);});
+    return .8;
+  }
   function start(){
     try{
       if(!ac)build();
-      ac.resume();next=Math.max(next,ac.currentTime+.3);
+      ac.resume();
+      const delay=introDone?0:intro();
+      next=Math.max(next,ac.currentTime+.3+delay);
       if(!timer)timer=setInterval(schedule,250);
-      fade(.32,5);playing=true;
+      if(delay){const t=ac.currentTime;master.gain.cancelScheduledValues(t);master.gain.setValueAtTime(0,t);master.gain.setValueAtTime(0,t+delay);master.gain.linearRampToValueAtTime(.42,t+delay+5);}
+      else fade(.42,3);
+      playing=true;
       btn.classList.remove('off');btn.setAttribute('aria-pressed','true');btn.setAttribute('aria-label','Pause music');
     }catch(e){}
   }
@@ -875,5 +930,4 @@ main{position:relative;z-index:1}
 
 
 
-</body>
-</html>
+</body></html>
