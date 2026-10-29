@@ -348,12 +348,12 @@ main{position:relative;z-index:1}
 .music-btn.off .bars i{animation:none;height:3px}
 @media (prefers-reduced-motion:reduce){.music-btn .bars i{animation:none;height:8px}}
 /* ---- motion preview ---- */
-.pair .mh-col,.pair .foil{clip-path:inset(0 100% 0 0)}
+.pair .mh-col,.pair .foil{clip-path:inset(-.3em 100% -.3em -.2em);line-height:1.5;padding:.15em .12em;margin:-.15em -.12em}
 .pair .bar{opacity:0;transition:opacity .9s 1.5s}
 .pair.inked .mh-col{animation:ink 2.4s cubic-bezier(.5,.1,.4,1) forwards}
 .pair.inked .foil{animation:ink 2.6s cubic-bezier(.5,.1,.4,1) 2s forwards}
 .pair.inked .bar{opacity:.7}
-@keyframes ink{to{clip-path:inset(0 0 0 0)}}
+@keyframes ink{from{clip-path:inset(-.3em 100% -.3em -.2em)}to{clip-path:inset(-.3em 0% -.3em -.2em)}}
 .ev-mt .dd svg{transform-origin:50% 90%;animation:bob 3.2s ease-in-out infinite alternate}
 .ev-mt .dd:nth-child(2n) svg{animation-duration:2.6s;animation-delay:-1s}
 .ev-mt .dd:nth-child(3n) svg{animation-duration:3.8s;animation-delay:-2s}
